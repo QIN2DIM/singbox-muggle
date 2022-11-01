@@ -64,6 +64,8 @@ sing-box run -c /usr/local/etc/sing-box/config.json
 
 ### Structure
 
+[official docs](https://sing-box.sagernet.org/configuration/outbound/hysteria/)
+
 ```json
 {
   "log": {},
@@ -79,11 +81,11 @@ sing-box run -c /usr/local/etc/sing-box/config.json
 
 <span id='tempalte'></span>
 
-[official docs](https://sing-box.sagernet.org/configuration/outbound/hysteria/) Edit the configuration in the way you like.  
+Edit the configuration in the way you like.  
 
-Replace the following **inbounds** placeholders: `obfs`, `domain`. If you don't know what the other configurations mean at the moment, then just replace the domain name without changing the other configurations. 
+Replace the following **inbounds** placeholders: `obfs`, `domain`. If you don't know what the other configurations mean at the moment, then just replace the domain without changing the other configurations. 
 
-The `domain` must be real and valid and have resolved to the server IPv4 (**without CDN**). 
+The `domain` must be real and valid and have resolved to the server's IPv4 (**without CDN**). 
 
 ```json
 {
