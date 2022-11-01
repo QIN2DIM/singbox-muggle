@@ -24,7 +24,7 @@ cd /home \
 
 2. **Configure**
 
-   Copy the server config of the hysteria given below and follow the prompt to modify it.
+   Copy the [server config](#tempalte) of the hysteria given below and follow the prompt to modify it.
 
 ```bash
 vim /usr/local/etc/sing-box/config.json
@@ -32,7 +32,7 @@ vim /usr/local/etc/sing-box/config.json
 
 3. **Debugging**
 
-   But Before doing so, you need to run sing-box in the foreground using the following command, which is helpful for debugging.
+   Before doing so, you need to run sing-box in the foreground using the following command, which is helpful for debugging.
 
 ```bash
 sing-box run -c /usr/local/etc/sing-box/config.json
@@ -76,6 +76,8 @@ sing-box run -c /usr/local/etc/sing-box/config.json
 ```
 
 ### Server
+
+<span id='tempalte'></span>
 
 [official docs](https://sing-box.sagernet.org/configuration/outbound/hysteria/) Edit the configuration in the way you like.  
 
