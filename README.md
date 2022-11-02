@@ -83,7 +83,7 @@ snap install go --classic && source /etc/profile
 
 Edit the configuration in the way you like.  
 
-Replace the following **inbounds** placeholders: `obfs`, `domain`. If you don't know what the other configurations mean at the moment, then just replace the domain without changing the other configurations. 
+Replace the following **inbounds** placeholders: `auth_str`, `domain`. If you don't know what the other configurations mean at the moment, then just replace the domain without changing the other configurations. 
 
 The `domain` must be real and valid and have resolved to the server's IPv4 (**without CDN**). 
 
@@ -108,13 +108,14 @@ The `domain` must be real and valid and have resolved to the server's IPv4 (**wi
             "listen_port": 58403,
             "up_mbps": 100,
             "down_mbps": 125,
-            "obfs": "ごちそうさまでした",  // ←
+            "obfs": "xplus",
+            "auth_str": "8214264494064bfbb0b8f6e82bddb186",
             "tls": {
                 "enabled": true,
-                "server_name": "awesome.domain.com",  // ←
+                "server_name": "awesome.domain.com",
                 "acme": {
-                    "domain": "awesome.domain.com",  // ←
-                    "email": "pekora@awesome.domain.com"  // ←
+                    "domain": "awesome.domain.com",
+                    "email": "pekora@awesome.domain.com"
                 }
             }
         }
