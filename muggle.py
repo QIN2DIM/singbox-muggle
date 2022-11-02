@@ -66,7 +66,7 @@ class Env:
     path_server_config = os.path.join(workspace, "hysteriaInbound.json")
 
     remote_muggle = "https://raw.githubusercontent.com/QIN2DIM/singbox-muggle/main/muggle.py"
-    local_script = "/home/sing-box/muggle.py"
+    local_script = "/home/muggle.py"
 
 
 SHELL_MUGGLE = f"""
@@ -82,7 +82,7 @@ def check_singbox(func):
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         if not os.path.isfile(Env.singbox_config) or not os.path.getsize(Env.singbox_config):
-            logging.error(f"sing-box 未初始化，請先執行「敏捷部署」 - func={func.__name__}")
+            logging.error(f"sing-box 未初始化，請先執行部署指令 - func={func.__name__}")
         else:
             return func(*args, **kwargs)
 
@@ -115,7 +115,16 @@ class HysteriaInbound:
     def get_server_inbound_config(self) -> dict:
         return {
             "log": {"level": "info"},
-            "dns": {"servers": [{"tag": "Cloudflare", "address": "https://1.1.1.1/dns-query"}]},
+            "dns": {
+                "servers": [
+                    {
+                        "tag": "Cloudflare",
+                        "address": "https://1.1.1.1/dns-query",
+                        "address_strategy": "prefer_ipv4",
+                        "strategy": "ipv4_only",
+                    }
+                ]
+            },
             "inbounds": [
                 {
                     "type": "hysteria",
@@ -163,7 +172,7 @@ class HysteriaInbound:
             f"&upmbps={self.up_mbps}"
             f"&downmbps={self.down_mbps}"
             f"&obfs={self.obfs}"
-            f"#remarks={self.domain}"
+            f"#{self.domain}"
         )
         return sharelink
 
@@ -178,16 +187,8 @@ class HysteriaInbound:
             "quit_on_disconnect": False,
             "handshake_timeout": 10,
             "idle_timeout": 60,
-            "socks5": {
-                "listen": "127.0.0.1:10808",
-                "timeout": 300,
-                "disable_udp": False,
-            },
-            "http": {
-                "listen": "127.0.01:10809",
-                "timeout": 300,
-                "disable_udp": False,
-            },
+            "socks5": {"listen": "127.0.0.1:10808", "timeout": 300, "disable_udp": False},
+            "http": {"listen": "127.0.01:10809", "timeout": 300, "disable_udp": False},
             "obfs": self.obfs,
             "auth_str": self.auth_str,
             "alpn": "hysteria",
@@ -197,30 +198,33 @@ class HysteriaInbound:
             "recv_window": 67108864,
             "disable_mtu_discovery": False,
             "resolver": "https://223.5.5.5:443/dns-query",
-            "resolve_preference": "64"
+            "resolve_preference": "46",
         }
         return v2rayn_client
 
     def refresh_localcache(self, drop=False):
         """刷新 sing-box 配置，更新客戶端配置文件"""
-        localcache = {
-            "v2rayn_custom_config": self.get_v2rayn_custom_config(),
-            "sharelink": self.get_sharelink(),
-        }
+        v2rayn_custom_config = self.get_v2rayn_custom_config()
+        sharelink = self.get_sharelink()
+
         with open(Env.path_v2rayn_custom_config, "w", encoding="utf8") as file:
-            json.dump(self.get_v2rayn_custom_config(), file)
+            json.dump(v2rayn_custom_config, file, indent=4)
         with open(Env.path_sharelink, "w", encoding="utf8") as file:
             file.write(f"{self.get_sharelink()}\n")
         with open(Env.path_server_config, "w", encoding="utf8") as file:
             json.dump(self.__dict__, file, indent=4)
         with open(Env.singbox_config, "w", encoding="utf8") as file:
-            json.dump(self.get_server_inbound_config(), file)
+            json.dump(self.get_server_inbound_config(), file, indent=4)
 
         if drop:
-            print(" ↓ ↓ V2RayN ↓ ↓ ".center(50, "="))
-            print(localcache.get("v2rayn_custom_config"))
-            print(" ↓ ↓ NekoRay & Matsuri & SagerNet & shadowrocket ↓ ↓ ".center(50, "="))
-            print(f'\n{localcache.get("sharelink")}\n')
+            print(" ↓ ↓ V2RayN ↓ ↓ ".center(100, "="))
+            print("\n复制 V2RayN 自定义服务器配置")
+            v2rayn_custom_config = str(v2rayn_custom_config).replace("\'", "\"")
+            v2rayn_custom_config = v2rayn_custom_config.replace("False", "false")
+            print(f"\n{v2rayn_custom_config}\n")
+            print(" ↓ ↓ sharelink ↓ ↓ ".center(100, "="))
+            print("\n分享鏈接： NekoRay & Matsuri & SagerNet & shadowrocket")
+            print(f"\n{sharelink}\n")
 
 
 class SingBoxService:
@@ -228,6 +232,7 @@ class SingBoxService:
     dir_git_local = "/home/sing-box/"
     NAME = "sing-box"
     path_sh_install = os.path.join(dir_git_local, "release", "local", "install.sh")
+    path_sh_install_go = os.path.join(dir_git_local, "release", "local", "install_go.sh")
     path_sh_enable = os.path.join(dir_git_local, "release", "local", "enable.sh")
     path_sh_update = os.path.join(dir_git_local, "release", "local", "update.sh")
     path_sh_uninstall = os.path.join(dir_git_local, "release", "local", "uninstall.sh")
@@ -242,19 +247,33 @@ class SingBoxService:
 
     def install(self):
         os.system("clear")
-        logging.info("Check snap, wget, port80 and port443")
-        os.system("apt install -y snapd wget >/dev/null 2>&1")
-        os.system("nginx -s stop >/dev/null 2>&1")
 
-        logging.info("Check go1.18.7+")
-        os.system("apt remove golang-go -y >/dev/null 2>&1")
-        os.system("snap install go --classic >/dev/null 2>&1")
+        logging.info("Check gcc")
+        os.system("apt install -y build-essential >/dev/null 2>&1")
+
+        logging.info("Check snap, git, wget, port80 and port443")
+        os.system("apt install -y snapd wget git >/dev/null 2>&1")
+
+        logging.info("Check context environment")
+        os.system(f"systemctl stop {self.NAME} >/dev/null 2>&1")
+        os.system(f"systemctl disable {self.NAME} >/dev/null 2>&1")
+        os.system(f"rm -rf {self.dir_git_local} >/dev/null 2>&1")
+        os.system(f"rm {Env.singbox_config} >/dev/null 2>&1")
 
         logging.info(f"Git clone sing-box from GitHub {self.remote_repo}")
         os.system(f"git clone {self.remote_repo} {self.dir_git_local} >/dev/null 2>&1")
 
-        logging.info("Downloading sing-box")
-        os.system(f"export PATH=$PATH:/snap/bin && {self.path_sh_install} >/dev/null 2>&1")
+        logging.info("Check golang 1.18.7+")
+        os.system("apt remove golang-go -y >/dev/null 2>&1")
+        os.system("snap install go --classic >/dev/null 2>&1")
+
+        logging.info("Building sing-box")
+        os.system(f"export PATH=$PATH:/snap/bin && {self.path_sh_install}")
+
+        logging.info("Enable sing-box system service")
+        os.system(f"systemctl enable {self.NAME}")
+
+        logging.info("All done")
 
     @check_singbox
     def start(self):
@@ -292,10 +311,9 @@ class Alias:
 
     def register(self):
         for path_bin in [f"/usr/bin/{self.BIN_NAME}", f"/usr/sbin/{self.BIN_NAME}"]:  # unnecessary
-            if not os.path.isfile(path_bin):
-                with open(path_bin, "w", encoding="utf8") as file:
-                    file.write(SHELL_MUGGLE)
-                os.system(f"chmod +x {path_bin}")
+            with open(path_bin, "w", encoding="utf8") as file:
+                file.write(SHELL_MUGGLE)
+            os.system(f"chmod +x {path_bin}")
 
     def remove(self):
         os.system(f"rm /usr/bin/{self.BIN_NAME}")
@@ -339,7 +357,7 @@ class CMDPanel:
 
     @check_singbox
     def delete(self):
-        if input(">> 卸载「已编译的sing-box服務及缓存數據」[y/n] ").strip().lower().startswith("y"):
+        if input(">> 卸载「已编译的 sing-box 服務及缓存數據」[y/n] ").strip().lower().startswith("y"):
             self.alias.remove()
             self.singbox.delete()
             logging.info("Delete cache of the naiveproxy")
@@ -353,7 +371,7 @@ class CMDPanel:
         prompt = "[2/5] 輸入監聽端口[listen_port](回车随机配置) > "
         self.hi.listen_port = self._guide_digital(prompt, self.hi.listen_port)
         prompt = "[3/5] 输入认证密码[auth_str](回车随机配置) > "
-        self.hi.obfs = input(prompt).strip() or self.hi.obfs
+        self.hi.auth_str = input(prompt).strip() or self.hi.auth_str
         prompt = f"[4/5] 輸入单客户端最大上传速度[up_mbps](默認值： {self.hi.up_mbps}) > "
         self.hi.up_mbps = self._guide_digital(prompt, self.hi.up_mbps)
         prompt = f"[5/5] 輸入单客户端最大下载速度[down_mbps](默認值： {self.hi.down_mbps}) > "
@@ -377,16 +395,26 @@ class CMDPanel:
         if input(f">> 是否使用上次配置的域名({self.hi.domain})？[y/n] ").strip().lower().startswith("n"):
             prompt = "[1/5] 输入解析到本机Ipv4的域名[domain] > "
             self.hi.domain = self._guide_domain(prompt)
-        if input(">> 是否使用上次配置的监听端口？[y/n] ").strip().lower().startswith("n"):
+        if input(f">> 是否使用上次配置的监听端口({self.hi.listen_port})？[y/n] ").strip().lower().startswith("n"):
             prompt = "[2/5] 輸入監聽端口[listen_port]（回车随机配置） > "
             self.hi.listen_port = self._guide_digital(prompt, self.hi.listen_port)
-        if input(">> 是否使用上次配置的认证密码？[y/n] ").strip().lower().startswith("n"):
+        if input(f">> 是否使用上次配置的认证密码({self.hi.auth_str})？[y/n] ").strip().lower().startswith("n"):
             prompt = "[3/5] 输入认证密码[auth_str]（回车随机配置） > "
-            self.hi.obfs = input(prompt).strip() or self.hi.obfs
-        if input(">> 是否使用上次配置的单客户端最大上传速度？[y/n]").strip().lower().startswith("n"):
+            self.hi.auth_str = input(prompt).strip() or self.hi.auth_str
+        if (
+            input(f">> 是否使用上次配置的单客户端最大上传速度({self.hi.up_mbps}Mbps)？[y/n]")
+            .strip()
+            .lower()
+            .startswith("n")
+        ):
             prompt = f"[4/5] 輸入单客户端最大上传速度[up_mbps]（默認值： {self.hi.up_mbps}） > "
             self.hi.up_mbps = self._guide_digital(prompt, self.hi.up_mbps)
-        if input(">> 是否使用上次配置的单客户端最大下载速度？[y/n]").strip().lower().startswith("n"):
+        if (
+            input(f">> 是否使用上次配置的单客户端最大下载速度({self.hi.down_mbps}Mbps)？[y/n]")
+            .strip()
+            .lower()
+            .startswith("n")
+        ):
             prompt = f"[5/5] 輸入单客户端最大下载速度[down_mbps]（默認值： {self.hi.down_mbps}） > "
             self.hi.down_mbps = self._guide_digital(prompt, self.hi.down_mbps)
 
@@ -429,3 +457,5 @@ if __name__ == "__main__":
         CMDPanel().startup()
     except KeyboardInterrupt:
         print("\n")
+
+# wget -qO /home/muggle.py https://raw.githubusercontent.com/QIN2DIM/singbox-muggle/v0.1.0/muggle.py && python3 /home/muggle.py
