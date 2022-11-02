@@ -15,50 +15,50 @@ snap install go --classic && source /etc/profile
 
    In this case, sing-box carries the [compilation parameters](https://github.com/SagerNet/sing-box/blob/16d959e6770932e88608cb3487b87f7c21eab103/release/local/install.sh#L13) `quic`, `wireguard` and `acme`.
 
-```bash
-cd /home \
-&& git clone https://github.com/SagerNet/sing-box \
-&& cd sing-box \
-&& ./release/local/install.sh
-```
+   ```bash
+   cd /home \
+   && git clone https://github.com/SagerNet/sing-box \
+   && cd sing-box \
+   && ./release/local/install.sh
+   ```
 
 2. **Configure**
 
    Copy the [server config](#tempalte) of the hysteria given below and follow the prompt to modify it.
 
-```bash
-vim /usr/local/etc/sing-box/config.json
-```
+   ```bash
+   vim /usr/local/etc/sing-box/config.json
+   ```
 
 3. **Debugging**
 
    Before doing so, you need to run sing-box in the foreground using the following command, which is helpful for debugging.
 
-```bash
-sing-box run -c /usr/local/etc/sing-box/config.json
-```
+   ```bash
+   sing-box run -c /usr/local/etc/sing-box/config.json
+   ```
 
 4. **Enable system service**
 
    Deploy the system services when you feel it is appropriate.  [See more details](https://sing-box.sagernet.org/examples/linux-server-installation/)
 
-```bash
-/home/sing-box/release/local/enable.sh
-```
+   ```bash
+   /home/sing-box/release/local/enable.sh
+   ```
 
 5. **Update though git**
 
    sing-box is still a project in its formative years and is updated very frequently. I don't think this scripted update is best practice at the moment, but it's better than nothing :D
 
-```bash
-/home/sing-box/release/local/update.sh
-```
+   ```bash
+   /home/sing-box/release/local/update.sh
+   ```
 
 5. **Uninstall**
 
-```bash
-/home/sing-box/release/local/uninstall.sh
-```
+   ```bash
+   /home/sing-box/release/local/uninstall.sh
+   ```
 
 ## Configuration
 
